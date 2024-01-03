@@ -1,13 +1,28 @@
 use std::net::UdpSocket;
 use std::thread;
 use std::time::Duration;
-use anyhow::{ensure, Error};
+use anyhow::{
+  ensure,
+  Error
+};
 use log::info;
+use crate::HeartbeatPacket;
+use crate::packet::{
+  HEARTBEAT_PACKET_END_MARKER,
+  HEARTBEAT_PACKET_START_MARKER
+};
 
 pub struct HeartbeatWorker
 {
   socket: UdpSocket,
   interval: Duration
+}
+
+#[derive(Debug, Default)]
+pub enum HeartbeatPacketMode
+{
+  JsonString,
+  #[default] BincodePacket
 }
 
 impl HeartbeatWorker
@@ -33,14 +48,32 @@ impl HeartbeatWorker
     })
   }
 
-  pub fn run(&self, process_list: Vec<String>) -> Result<(), Error>
+  #[allow(unreachable_code)]
+  pub fn run(&self, process_list: Vec<String>, mode: HeartbeatPacketMode) -> Result<(), Error>
   {
     info!("starting heartbeat on {} processes", process_list.len());
     loop
     {
-      self.socket.send(b"hello!")?;
+      let packet = HeartbeatPacket::new(
+        self.socket.local_addr()?,
+        &process_list
+      );
+      match mode {
+        HeartbeatPacketMode::JsonString => {
+          let buf = packet?.serialize_to_json()?;
+          self.socket.send(buf.as_bytes())?;
+        },
+        HeartbeatPacketMode::BincodePacket => {
+          let buf = packet?.serialize_to_binary()?;
+          let buf_with_markers = [
+            &[HEARTBEAT_PACKET_START_MARKER],
+            buf.as_slice(),
+            &[HEARTBEAT_PACKET_END_MARKER]
+          ].concat();
+          self.socket.send(&buf_with_markers)?;
+        }
+      };
       thread::sleep(self.interval);
-      print!(".");
     }
     info!("stopping heartbeat");
     Ok(())
