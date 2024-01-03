@@ -1,0 +1,19 @@
+[package]
+name = "quasar_heartbeat"
+description = "Simple heartbeat library for QuaSAR. Includes sending and receiving parts."
+version = "0.1.0"
+edition = "2021"
+authors = ["Dmitry Ryazancev <whs31@github.com>"]
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/quasar-project/heartbeat"
+
+[dependencies]
+anyhow = "1.0.79"
+bincode = "2.0.0-rc.3"
+serde = "1.0.194"
+serde_derive = "1.0.194"
+log = "0.4.20"
+
+[dev-dependencies]
+simple_logger = "4.3.3"
